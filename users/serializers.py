@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from users.models import User, Payments
+from users.models import User, Payments, Subscribe
 
 
 class PaymentsSerializer(serializers.ModelSerializer):
@@ -33,3 +33,13 @@ class LimitedUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['name', 'age', 'avatar', 'city']
+
+
+class SubscribeSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для подписок
+    """
+
+    class Meta:
+        model = Subscribe
+        fields = '__all__'
