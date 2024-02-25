@@ -1,16 +1,6 @@
 from rest_framework import serializers
 
-from users.models import User, Payments, Subscribe
-
-
-class PaymentsSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для платежей
-    """
-
-    class Meta:
-        model = Payments
-        fields = '__all__'
+from users.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -18,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
     Сериализатор для пользователя
     """
 
-    payments = PaymentsSerializer(source='payments_set', many=True, read_only=True)
+    # payments = PaymentsSerializer(source='payments_set', many=True, read_only=True)
 
     class Meta:
         model = User
@@ -33,13 +23,3 @@ class LimitedUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['name', 'age', 'avatar', 'city']
-
-
-class SubscribeSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для подписок
-    """
-
-    class Meta:
-        model = Subscribe
-        fields = '__all__'

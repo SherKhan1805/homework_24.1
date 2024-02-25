@@ -1,8 +1,8 @@
 from rest_framework.test import APITestCase, force_authenticate
 from rest_framework import status
 
-from materials.models import Course, Lesson
-from users.models import User, Subscribe
+from materials.models import Course
+from users.models import User
 
 
 class SubscribeTestCase(APITestCase):

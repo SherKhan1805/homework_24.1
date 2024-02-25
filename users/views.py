@@ -3,10 +3,10 @@ from rest_framework import viewsets, generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
 
 from materials.models import Course
-from users.models import User, Payments, Subscribe
+from users.models import User
 from users.paginators import UserPagination
 from users.permissions import IsUser
-from users.serializers import UserSerializer, PaymentsSerializer, LimitedUserSerializer, SubscribeSerializer
+from users.serializers import UserSerializer, LimitedUserSerializer
 
 from rest_framework.permissions import IsAuthenticated
 
@@ -79,45 +79,3 @@ class UserDestroyAPIView(generics.DestroyAPIView):
     queryset = User.objects.all()
     permission_classes = [IsAuthenticated, IsUser]
 
-
-class PaymentsListAPIView(generics.ListAPIView):
-    """
-    Вывод списка платежей.
-    Подключена фильтрация по курсу, способу оплаты
-    и дате.
-    """
-    serializer_class = PaymentsSerializer
-    queryset = Payments.objects.all()
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['payment_course']
-    search_fields = ['payment_method']
-    ordering_fields = ['payment_date']
-    permission_classes = [IsAuthenticated, IsUser]
-
-
-class SubscribeCreateAPIView(generics.CreateAPIView):
-    """
-    Cоздание подписки
-    """
-    serializer_class = SubscribeSerializer
-    queryset = Subscribe.objects.all()
-
-    def post(self, request, *args, **kwargs):
-        user = self.request.user
-        course_id = self.request.data.get('course_id')
-        course_item = get_object_or_404(Course, id=course_id)
-
-        # Получаем объект подписки по пользователю курсу
-        subs_item = Subscribe.objects.filter(user=user, course=course_item)
-
-        # Если подписка у пользователя на этот курс есть - удаляем ее
-        if subs_item:
-            subs_item.delete()
-            message = 'подписка удалена'
-        # Если подписки у пользователя на этот курс нет - создаем ее
-        else:
-            subscribe_new = Subscribe.objects.create(user=user, course=course_item)
-            subscribe_new.save()
-            message = 'подписка добавлена'
-        # Возвращаем ответ в API
-        return Response({"message": message})
