@@ -16,6 +16,8 @@ class Payments(models.Model):
     payment_method = models.CharField(max_length=50, choices=[('cash', 'Наличные'), ('transfer', 'Перевод')])
     payment_session_id = models.CharField(max_length=1000, blank=True, null=True,
                                           verbose_name='идентификатор сессии платежа')
+    payment_status = models.CharField(max_length=50, choices=[('successes', 'Успешно'), ('failed', 'Неуспешно')]
+                                      , **NULLABLE)
 
     def __str__(self):
         return f'{self.payment_user} {self.payment_date}'

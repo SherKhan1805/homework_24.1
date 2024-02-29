@@ -1,7 +1,6 @@
 from django.contrib import admin
 
-from payments.models import Payments, Subscribe
+from users.models import User
 
-admin.site.register(Payments)
+admin.site.register(User)
 
-admin.site.register(Subscribe)

@@ -1,6 +1,3 @@
-import os
-
-import stripe
 from rest_framework import generics, filters
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -17,6 +14,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import status
+
+import ast
 
 
 class PaymentsCreateAPIView(generics.CreateAPIView):
@@ -54,10 +53,6 @@ class PaymentsCreateAPIView(generics.CreateAPIView):
         payment_session = create_payment_session(amount, success_url='https://example.com/success',
                                                  cancel_url='https://example.com/cancel')
 
-        session_id = payment_session['session_id']
-
-        session_status = get_payment_status(session_id)
-        print(session_status)
         # Добавляем ссылку на оплату в данные о платеже
         valid_data['payment_session_id'] = payment_session
 
@@ -66,6 +61,42 @@ class PaymentsCreateAPIView(generics.CreateAPIView):
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class PaymentStatusAPIView(generics.CreateAPIView):
+    """
+    Получение статуса оплаты
+    В пост запрос передается payments_id.
+    Контроллер передает его в сервисную функцию.
+    Функция делает запрос в stripe и получает статус оплаты.
+    """
+
+    serializer_class = PaymentsSerializer
+    queryset = Payments.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        payment_id = request.data.get('payment_id')
+
+        payment_obj = Payments.objects.get(id=payment_id)
+        print(payment_obj)
+
+        pay_session_str = payment_obj.payment_session_id
+        pay_session_dict = ast.literal_eval(pay_session_str)
+
+        session_id = pay_session_dict.get('session_id')
+
+        payment_status = get_payment_status(session_id)
+        print(payment_status)
+
+        if payment_status == 'complete':
+            payment_obj.payment_status ='Успешно'
+            payment_obj.save()
+        else:
+            payment_obj.payment_status = 'Неуспешно'
+            payment_obj.save()
+
+        return Response({'payment_status': payment_status}, status=status.HTTP_200_OK)
 
 
 class PaymentsListAPIView(generics.ListAPIView):
@@ -110,41 +141,4 @@ class SubscribeCreateAPIView(generics.CreateAPIView):
         # Возвращаем ответ в API
         return Response({"message": message})
 
-
-# stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-
-
-# class PaymentStatusAPIView(generics.CreateAPIView):
-#     def post(self, request, args, *kwargs):
-#         payment_id = request.data.get('payment_id')
-#
-#         try:
-#             # Получение информации о платеже от Stripe
-#             payment_intent = stripe.PaymentIntent.retrieve(payment_id)
-#             print(payment_intent)
-#             # Получение статуса платежа
-#             payment_status = payment_intent.status
-#             return Response({'payment_status': payment_status}, status=status.HTTP_200_OK)
-#         except stripe.error.InvalidRequestError as e:
-#             # Обработка ошибок, если платеж не найден или возникла ошибка при обращении к API Stripe
-#             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-# class PaymentsRetrieveAPIView(generics.RetrieveAPIView):
-#     """
-#     Просмотр одного платежа
-#     """
-#
-#     serializer_class = PaymentsSerializer
-#     queryset = Payments.objects.all()
-#     permission_classes = [IsAuthenticated]
-#
-#     def get_object(self, *args, **kwargs):
-#         # Получение идентификатора объекта из URL запроса
-#         obj_id = self.kwargs['pk']
-#         # Получение объекта по идентификатору
-#         obj = Payments.objects.get(pk=obj_id)
-#         session_id = obj.payment_session_id.get('session_id')
-#         session_status = get_payment_status(session_id)
-#         print(session_status)
-#         return session_status
 

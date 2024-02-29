@@ -63,7 +63,7 @@ def get_payment_status(session_id):
     """
     try:
         status = stripe.checkout.Session.retrieve(
-            session_id=session_id,
+            id=session_id,
         )
         return status.status
 

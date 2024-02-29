@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from rest_framework import generics
 
 from materials.models import Course, Lesson
@@ -6,6 +8,8 @@ from materials.permissions import IsModer, IsAuthor
 from materials.serializers import CourseSerializer, LessonSerializer, CourseListSerializer
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
+
+from materials.tasks import send_moderator_email
 
 
 class CourseCreateAPIView(generics.CreateAPIView):
@@ -112,6 +116,27 @@ class LessonUpdateAPIView(generics.UpdateAPIView):
     serializer_class = LessonSerializer
     queryset = Lesson.objects.all()
     permission_classes = [IsAuthenticated, IsModer | IsAuthor]
+    # permission_classes = [AllowAny]
+
+    def perform_update(self, serializer):
+        """
+        Получает id курса из данных урока.
+        Вызывает функцию send_moderator_email.
+        """
+        serializer.save()
+        data = self.request.data
+        # получаем id курса из данных
+        course_id = data.get('course_id')
+
+        # получаем объект курса
+        course_obj = Course.objects.get(id=course_id)
+
+        # обновляем дату изменения курса
+        course_obj.update_date = datetime.utcnow()
+        course_obj.save()
+
+        # вызываем задачу для отправки письма
+        send_moderator_email(course_id)
 
 
 class LessonDestroyAPIView(generics.DestroyAPIView):

@@ -19,6 +19,7 @@ class User(AbstractUser):
     city = models.CharField(max_length=50, verbose_name='город', **NULLABLE)
     verification_code = models.CharField(max_length=50, verbose_name='код верификации email', **NULLABLE)
 
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
