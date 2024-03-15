@@ -12,6 +12,7 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
+
 @shared_task
 def send_moderator_email(course_id):
     """

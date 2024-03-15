@@ -5,10 +5,11 @@ class MaterialLinkCustomValidator:
 
     def __init__(self, field):
         self.field = field
+        print(f'ПОЛЕ сефл филд: {self.field}')
 
     def __call__(self, value):
         link_example = 'youtube.com'
-        print(value)
+        print(f'ПОЛЕ валуе: {value}')
         tmp_val = dict(value).get(self.field)
         if link_example not in tmp_val:
             raise serializers.ValidationError("Разрешены ссылки только на youtube.com")

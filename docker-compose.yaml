@@ -1,0 +1,60 @@
+version: "3"
+
+services:
+
+  redis:
+    image: redis
+    ports:
+      - '6379:6379'
+  db:
+    image: postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "db_name"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./pddata:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+  app:
+    build:
+      context: .
+    tty: true
+    volumes:
+      - .:/code
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  app:
+  db:
+    driver: local
+
+#version: '3'
+#
+#services:
+#  db:
+#    image: postgres
+#    environment:
+#      POSTGRES_PASSWORD: "alexia1456"
+#      PGDATA: /var/lib/postgresql/data/pgdata
+#
+#  app:
+#    build: .
+#    command: python manage.py runserver 0.0.0.0:8000
+#    ports:
+#      - '8000:8000'
