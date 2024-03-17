@@ -1,60 +1,73 @@
-version: "3"
+version: '3.8'
 
 services:
-
-  redis:
-    image: redis
-    ports:
-      - '6379:6379'
   db:
-    image: postgres
-    env_file:
-      - .env
+    image: postgres:15.1-alpine
     environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
-      POSTGRES_DB: "db_name"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      POSTGRES_PASSWORD: ${DATABASES_PASSWORD}
+      POSTGRES_USER: ${DATABASES_USER}
+      POSTGRES_DB: ${DATABASES_NAME}
     volumes:
-      - ./pddata:/var/lib/postgresql/data
-    ports:
-      - '5432:5432'
+    - pg_data:/var/lib/postgresql/data/
 
-  app:
-    build:
-      context: .
-    tty: true
-    volumes:
-      - .:/code
-    restart: on-failure
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
+    healthcheck:
+      test: pg_isready -d ${DATABASES_NAME} -U ${DATABASES_USER}
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  app_migrations:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_HOST: db
     depends_on:
       db:
         condition: service_healthy
+    command: poetry run python manage.py migrate
+
+  app:
+    build: .
+    ports:
+      - '8000:8000'
+    env_file: .env
+    environment:
+      DATABASE_HOST: db
+      CACHE_LOCATION: 'redis://redis:6379/'
+      CELERY_BROKER_URL: 'redis://redis:6379/0'
+      CELERY_RESULT_BACKEND: 'redis://redis:6379/0'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app_migrations:
+        condition: service_completed_successfully
+
+  redis:
+    image: redis:6.2.4-alpine
+    healthcheck:
+      test: redis-cli ping
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  celery:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_HOST: db
+      CACHE_LOCATION: 'redis://redis:6379/0'
+      CELERY_BROKER_URL: 'redis://redis:6379/0'
+      CELERY_RESULT_BACKEND: 'redis://redis:6379/0'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app_migrations:
+        condition: service_completed_successfully
+    command: poetry run celery -A config worker -l INFO
 
 volumes:
-  app:
-  db:
-    driver: local
-
-#version: '3'
-#
-#services:
-#  db:
-#    image: postgres
-#    environment:
-#      POSTGRES_PASSWORD: "alexia1456"
-#      PGDATA: /var/lib/postgresql/data/pgdata
-#
-#  app:
-#    build: .
-#    command: python manage.py runserver 0.0.0.0:8000
-#    ports:
-#      - '8000:8000'
+  pg_data:
